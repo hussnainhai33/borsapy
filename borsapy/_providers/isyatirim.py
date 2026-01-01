@@ -538,21 +538,66 @@ class IsYatirimProvider(BaseProvider):
         quarterly: bool,
         count: int = 5,
     ) -> list[tuple[int, int]]:
-        """Generate period tuples (year, period) for financial queries."""
+        """Generate period tuples (year, period) for financial queries.
+
+        For quarterly data, starts from the last completed quarter.
+        For annual data, starts from the previous year (current year data
+        typically not available until Q1 of next year).
+        """
         periods = []
         if quarterly:
-            # Quarters: 3, 6, 9, 12
-            for i in range(count * 4):
-                year = current_year - (i // 4)
-                quarter = 12 - (i % 4) * 3
-                if quarter <= 0:
-                    quarter = 12
+            # Determine last AVAILABLE quarter based on current month
+            # Financial data has ~45-60 day publication delay after quarter end
+            current_month = datetime.now().month
+            #
+            # Publication timeline (approximate):
+            #   Q1 (Jan-Mar) data → published May/June
+            #   Q2 (Apr-Jun) data → published Aug/Sep
+            #   Q3 (Jul-Sep) data → published Nov/Dec
+            #   Q4 (Oct-Dec) data → published Feb/Mar of next year
+            #
+            # So available data by month:
+            #   Jan-Feb: Q3 of previous year is latest
+            #   Mar-May: Q4 of previous year is latest
+            #   Jun-Aug: Q1 of current year is latest
+            #   Sep-Nov: Q2 of current year is latest
+            #   Dec: Q3 of current year is latest
+            #
+            if current_month <= 2:
+                # Jan-Feb: Q3 of previous year is latest available
+                start_year = current_year - 1
+                start_period = 9
+            elif current_month <= 5:
+                # Mar-May: Q4 of previous year is latest
+                start_year = current_year - 1
+                start_period = 12
+            elif current_month <= 8:
+                # Jun-Aug: Q1 of current year is latest
+                start_year = current_year
+                start_period = 3
+            elif current_month <= 11:
+                # Sep-Nov: Q2 of current year is latest
+                start_year = current_year
+                start_period = 6
+            else:
+                # Dec: Q3 of current year is latest
+                start_year = current_year
+                start_period = 9
+
+            # Generate quarters going backward from start
+            year = start_year
+            period = start_period
+            for _ in range(count * 4):
+                periods.append((year, period))
+                # Move to previous quarter
+                period -= 3
+                if period <= 0:
+                    period = 12
                     year -= 1
-                periods.append((year, quarter))
         else:
-            # Annual: period 12
+            # Annual: start from previous year (current year data not ready)
             for i in range(count):
-                periods.append((current_year - i, 12))
+                periods.append((current_year - 1 - i, 12))
         return periods
 
     def _fetch_financial_table(
@@ -598,13 +643,19 @@ class IsYatirimProvider(BaseProvider):
         if not items:
             return pd.DataFrame()
 
+        # Detect quarterly vs annual: annual has all periods = 12
+        is_quarterly = len({p[1] for p in periods}) > 1
+
         records = []
         for item in items:
             row_name = item.get("itemDescTr", item.get("itemDescEng", "Unknown"))
             row_data = {"Item": row_name}
 
             for i, (year, period) in enumerate(periods[:5], 1):
-                col_name = f"{year}Q{period // 3}" if period < 12 else str(year)
+                if is_quarterly:
+                    col_name = f"{year}Q{period // 3}"
+                else:
+                    col_name = str(year)
                 value = item.get(f"value{i}")
                 if value is not None:
                     try:
@@ -740,6 +791,89 @@ class IsYatirimProvider(BaseProvider):
 
         self._cache_set(cache_key, result, TTL.REALTIME_PRICE)
         return result
+
+    def get_company_metrics(self, symbol: str) -> dict[str, Any]:
+        """
+        Get company metrics from şirket kartı page (Cari Değerler).
+
+        Args:
+            symbol: Stock symbol (e.g., "THYAO").
+
+        Returns:
+            Dictionary with:
+            - market_cap: Market capitalization (TL)
+            - pe_ratio: Price/Earnings ratio (F/K)
+            - pb_ratio: Price/Book ratio (PD/DD)
+            - ev_ebitda: Enterprise Value/EBITDA (FD/FAVÖK)
+            - free_float: Free float percentage
+            - foreign_ratio: Foreign ownership percentage
+            - net_debt: Net debt (TL)
+        """
+        import re
+
+        symbol = symbol.upper().replace(".IS", "").replace(".E", "")
+
+        cache_key = f"isyatirim:metrics:{symbol}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        stock_page_url = f"https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/sirket-karti.aspx?hisse={symbol}"
+
+        try:
+            response = self._client.get(stock_page_url, timeout=15)
+            response.raise_for_status()
+            html = response.text
+        except Exception as e:
+            raise APIError(f"Failed to fetch company metrics for {symbol}: {e}") from e
+
+        result: dict[str, Any] = {
+            "market_cap": None,
+            "pe_ratio": None,
+            "pb_ratio": None,
+            "ev_ebitda": None,
+            "free_float": None,
+            "foreign_ratio": None,
+            "net_debt": None,
+        }
+
+        # Find Cari Değerler section
+        idx = html.find("Cari Değerler")
+        if idx > 0:
+            snippet = html[idx : idx + 3000]
+
+            # Parse th/td pairs
+            pattern = r"<th[^>]*>([^<]+)</th>\s*<td[^>]*>([^<]+)</td>"
+            matches = re.findall(pattern, snippet)
+
+            for label, value in matches:
+                label = label.strip()
+                value = value.strip().replace(".", "").replace(",", ".")
+
+                try:
+                    if "F/K" in label and "FD" not in label:
+                        result["pe_ratio"] = float(value)
+                    elif "PD/DD" in label:
+                        result["pb_ratio"] = float(value)
+                    elif "FD/FAVÖK" in label:
+                        result["ev_ebitda"] = float(value)
+                    elif "Piyasa Değeri" in label:
+                        # Value is in mnTL, convert to TL
+                        num = float(re.sub(r"[^\d.]", "", value))
+                        result["market_cap"] = int(num * 1_000_000)
+                    elif "Net Borç" in label:
+                        num = float(re.sub(r"[^\d.]", "", value))
+                        result["net_debt"] = int(num * 1_000_000)
+                    elif "Halka Açıklık" in label:
+                        result["free_float"] = float(re.sub(r"[^\d.]", "", value))
+                    elif "Yabancı Oranı" in label:
+                        result["foreign_ratio"] = float(re.sub(r"[^\d.]", "", value))
+                except (ValueError, TypeError):
+                    continue
+
+        self._cache_set(cache_key, result, TTL.REALTIME_PRICE)
+        return result
+
 
 # Singleton instance
 _provider: IsYatirimProvider | None = None
