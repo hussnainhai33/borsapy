@@ -30,6 +30,7 @@ class KAPProvider(BaseProvider):
     DISCLOSURE_URL = "https://www.kap.org.tr/tr/bildirim-sorgu-sonuc"
     CALENDAR_API_URL = "https://kap.org.tr/tr/api/expected-disclosure-inquiry/company"
     COMPANY_INFO_URL = "https://kap.org.tr/tr/sirket-bilgileri/ozet"
+    COMPANY_GENERAL_URL = "https://kap.org.tr/tr/sirket-bilgileri/genel"
     CACHE_DURATION = 86400  # 24 hours
 
     def __init__(self):
@@ -410,6 +411,11 @@ class KAPProvider(BaseProvider):
             if website_match:
                 result["website"] = website_match.group(1).strip()
 
+            # Get business summary from genel page
+            business_summary = self._get_business_summary(member_oid)
+            if business_summary:
+                result["businessSummary"] = business_summary
+
             # Cache result
             self._company_details_cache[symbol] = result
             self._company_details_cache_time[symbol] = current_time
@@ -418,6 +424,102 @@ class KAPProvider(BaseProvider):
 
         except Exception:
             return {}
+
+    def _get_business_summary(self, member_oid: str) -> str | None:
+        """Get business summary (Faaliyet Konusu) from KAP genel page."""
+        url = f"{self.COMPANY_GENERAL_URL}/{member_oid}"
+
+        try:
+            response = self._client.get(url, timeout=15)
+            if response.status_code != 200:
+                return None
+
+            text = response.text
+
+            # Find the faaliyet_konu section
+            key_idx = text.find("kpy41_acc2_faaliyet_konu")
+            if key_idx < 0:
+                return None
+
+            # Extract chunk - stop at next section (kpy41_acc2_sure or similar)
+            remaining = text[key_idx:]
+            next_section = re.search(r'kpy41_acc2_(?!faaliyet)', remaining)
+            if next_section:
+                chunk = remaining[: next_section.start()]
+            else:
+                chunk = remaining[:5000]
+
+            # Format 1: HTML-encoded value field (e.g., AKBNK, THYAO)
+            # Pattern: value\":\"...\",\"disclosureIndex
+            value_match = re.search(
+                r'value\\":\\"(.*?)\\",\\"disclosureIndex', chunk, re.DOTALL
+            )
+            if value_match:
+                value = value_match.group(1)
+                if "u003e" in value:
+                    # Decode HTML entities
+                    decoded = value.replace("\\u003e", ">").replace("\\u003c", "<")
+                    decoded = decoded.replace("u003e", ">").replace("u003c", "<")
+                    # Extract text between > and <
+                    text_parts = re.findall(r">([^<>]+)<", decoded)
+                    meaningful = [
+                        t.replace("\\n", " ").replace("\\\\n", " ").strip()
+                        for t in text_parts
+                        if len(t.strip()) > 10
+                    ]
+                    if meaningful:
+                        summary = " ".join(meaningful)
+                        # Clean up escape sequences
+                        summary = summary.replace("\\ ", " ").replace("\\", "")
+                        summary = re.sub(r"\s+", " ", summary).strip()
+                        if len(summary) > 10:
+                            return summary
+
+            # Format 2: React children patterns
+            texts = []
+            skip_texts = ("Bulunmamaktadır.", "-", "Şirketin Süresi")
+
+            # Children array: \"children\":[\"text\"]
+            array_matches = re.findall(r'\\"children\\":\[\\"([^\\"]{10,})\\"', chunk)
+            for m in array_matches:
+                if not m.startswith("$") and m not in skip_texts:
+                    texts.append(m)
+
+            # Children string: \"children\":\"text\"
+            string_matches = re.findall(r'\\"children\\":\\"([^\\"]{10,})\\"', chunk)
+            for m in string_matches:
+                if not m.startswith("$") and m not in skip_texts:
+                    texts.append(m)
+
+            if texts:
+                summary = " ".join(texts)
+                summary = summary.replace("\\n", " ").strip()
+                summary = re.sub(r"\s+", " ", summary)
+                if len(summary) > 10:
+                    return summary
+
+            return None
+        except Exception:
+            return None
+
+    def get_disclosure_content(self, disclosure_id: int | str) -> str | None:
+        """
+        Get disclosure HTML content by ID.
+
+        Args:
+            disclosure_id: KAP disclosure ID (e.g., 1530826).
+
+        Returns:
+            Raw HTML body content or None if failed.
+        """
+        url = f"https://www.kap.org.tr/tr/Bildirim/{disclosure_id}"
+
+        try:
+            response = self._client.get(url, timeout=15)
+            response.raise_for_status()
+            return response.text
+        except Exception:
+            return None
 
 
 # Singleton

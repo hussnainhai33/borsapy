@@ -292,15 +292,7 @@ class EnrichedInfo:
         if metrics.get("market_cap") and basic.get("last"):
             shares = int(metrics["market_cap"] / basic["last"])
 
-        # Get business summary (Faal Alanı)
-        try:
-            business_summary = self._ticker._get_isyatirim().get_business_summary(
-                self._ticker._symbol
-            )
-        except Exception:
-            business_summary = None
-
-        # Get company details from KAP (sector, market, website)
+        # Get company details from KAP (sector, market, website, businessSummary)
         try:
             kap_details = get_kap_provider().get_company_details(
                 self._ticker._symbol
@@ -327,7 +319,7 @@ class EnrichedInfo:
             "fiftyTwoWeekLow": year_low,
             "fiftyDayAverage": fifty_avg,
             "twoHundredDayAverage": two_hundred_avg,
-            "longBusinessSummary": business_summary,
+            "longBusinessSummary": kap_details.get("businessSummary"),
         }
 
         return self._extended_data
@@ -1033,6 +1025,22 @@ class Ticker:
             1  29.12.2025 16:11:36  Payların Geri Alınmasına İlişkin Bildirim  https://www.kap.org.tr/tr/Bildirim/1530656
         """
         return self._get_kap().get_disclosures(self._symbol)
+
+    def get_news_content(self, disclosure_id: int | str) -> str | None:
+        """
+        Get full HTML content of a KAP disclosure by ID.
+
+        Args:
+            disclosure_id: KAP disclosure ID from news DataFrame URL.
+
+        Returns:
+            Raw HTML content or None if failed.
+
+        Examples:
+            >>> stock = Ticker("THYAO")
+            >>> html = stock.get_news_content(1530826)
+        """
+        return self._get_kap().get_disclosure_content(disclosure_id)
 
     @cached_property
     def calendar(self) -> pd.DataFrame:
