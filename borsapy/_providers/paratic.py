@@ -37,9 +37,11 @@ class ParaticProvider(BaseProvider):
     # Interval mapping (minutes)
     INTERVAL_MAP = {
         "1m": 1,
+        "3m": 3,
         "5m": 5,
         "15m": 15,
         "30m": 30,
+        "45m": 45,
         "1h": 60,
         "1d": 1440,
         "1wk": 10080,
