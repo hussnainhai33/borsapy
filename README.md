@@ -58,6 +58,10 @@ hisse = bp.Ticker("THYAO")
 print(hisse.fast_info["last_price"])     # Son fiyat
 print(hisse.fast_info["previous_close"]) # Önceki kapanış
 print(hisse.fast_info["volume"])         # Hacim
+print(hisse.fast_info["market_cap"])     # Piyasa değeri
+print(hisse.fast_info["pe_ratio"])       # F/K oranı
+print(hisse.fast_info["free_float"])     # Halka açıklık oranı
+print(hisse.fast_info["foreign_ratio"])  # Yabancı oranı
 
 # Detaylı bilgiler (tüm verileri yükler)
 print(hisse.info["last"])           # Son fiyat
@@ -270,6 +274,7 @@ print(bp.search_funds("banka"))
 fon = bp.Fund("AAK")
 print(fon.info)                     # Fon bilgileri
 print(fon.history(period="1ay"))    # Fiyat geçmişi
+print(fon.performance)              # Performans verileri
 ```
 
 ---
@@ -283,8 +288,12 @@ import borsapy as bp
 
 enf = bp.Inflation()
 
-# Son TÜFE verileri
+# Son TÜFE verileri (Tüketici Fiyat Endeksi)
 print(enf.latest())
+print(enf.tufe())                   # TÜFE geçmişi
+
+# ÜFE verileri (Üretici Fiyat Endeksi)
+print(enf.ufe())
 
 # Enflasyon hesaplayıcı
 # 100.000 TL'nin 2020-01'den 2024-01'e değeri
@@ -303,11 +312,24 @@ import borsapy as bp
 
 viop = bp.VIOP()
 
-# Vadeli işlem kontratları
+# Tüm vadeli işlem kontratları
 print(viop.futures)
 
-# Opsiyon verileri
+# Tüm opsiyonlar
 print(viop.options)
+
+# Vadeli işlem alt kategorileri
+print(viop.stock_futures)      # Pay vadeli
+print(viop.index_futures)      # Endeks vadeli
+print(viop.currency_futures)   # Döviz vadeli
+print(viop.commodity_futures)  # Emtia vadeli
+
+# Opsiyon alt kategorileri
+print(viop.stock_options)      # Pay opsiyonları
+print(viop.index_options)      # Endeks opsiyonları
+
+# Sembol bazlı arama
+print(viop.get_by_symbol("THYAO"))  # THYAO'nun tüm türevleri
 ```
 
 ---
