@@ -199,18 +199,58 @@ df = bp.download(["THYAO", "GARAN"], period="1ay", group_by="column")
 
 ## Index (Endeksler)
 
-BIST endekslerine erişim.
+BIST endekslerine erişim - 79 endeks, bileşen listeleri dahil.
+
+### Temel Kullanım
 
 ```python
 import borsapy as bp
 
-# Mevcut endeksler
+# Mevcut endeksler (33 popüler endeks)
 print(bp.indices())
+# ['XU100', 'XU050', 'XU030', 'XKTUM', 'XK100', 'XK030', 'XBANK', ...]
+
+# Detaylı liste (bileşen sayısı ile)
+print(bp.indices(detailed=True))
+# [{'symbol': 'XU100', 'name': 'BIST 100', 'count': 100}, ...]
+
+# Tüm BIST endeksleri (79 endeks)
+print(bp.all_indices())
+# [{'symbol': 'X030C', 'name': 'BIST 30 Capped', 'count': 30}, ...]
 
 # Endeks verisi
 xu100 = bp.Index("XU100")
-print(xu100.history(period="1ay"))
+print(xu100.info)                    # Güncel değer, değişim
+print(xu100.history(period="1ay"))   # OHLCV geçmişi
 ```
+
+### Endeks Bileşenleri
+
+```python
+# Endeks içindeki hisseler
+xu030 = bp.Index("XU030")
+print(xu030.components)              # [{'symbol': 'AKBNK', 'name': 'AKBANK'}, ...]
+print(xu030.component_symbols)       # ['AKBNK', 'ASELS', 'BIMAS', ...]
+print(len(xu030.components))         # 30
+
+# Katılım endeksleri
+xk030 = bp.Index("XK030")            # BIST Katılım 30
+print(xk030.components)              # Faizsiz finans uyumlu 30 hisse
+print(xk030.component_symbols)
+
+xktum = bp.Index("XKTUM")            # BIST Katılım Tüm
+print(len(xktum.components))         # 218 hisse
+```
+
+### Desteklenen Endeksler
+
+| Kategori | Endeksler |
+|----------|-----------|
+| Ana | XU100, XU050, XU030, XUTUM |
+| Katılım | XKTUM, XK100, XK050, XK030, XKTMT |
+| Sektör | XBANK, XUSIN, XUMAL, XUTEK, XGIDA, XHOLD, ... |
+| Tematik | XSRDK, XKURY, XYLDZ, XSPOR, XGMYO, ... |
+| Şehir | XSIST, XSANK, XSIZM, XSBUR, ... |
 
 ---
 

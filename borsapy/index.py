@@ -5,15 +5,26 @@ from typing import Any
 
 import pandas as pd
 
+from borsapy._providers.bist_index import get_bist_index_provider
 from borsapy._providers.paratic import get_paratic_provider
 
 # Known market indices with their names
 INDICES = {
+    # Main indices
     "XU100": "BIST 100",
     "XU050": "BIST 50",
     "XU030": "BIST 30",
+    "XUTUM": "BIST Tüm",
+    # Participation (Katılım) indices
+    "XKTUM": "BIST Katılım Tüm",
+    "XK100": "BIST Katılım 100",
+    "XK050": "BIST Katılım 50",
+    "XK030": "BIST Katılım 30",
+    "XKTMT": "BIST Katılım Model Portföy",
+    # Sector indices
     "XBANK": "BIST Banka",
     "XUSIN": "BIST Sınai",
+    "XUMAL": "BIST Mali",
     "XHOLD": "BIST Holding ve Yatırım",
     "XUTEK": "BIST Teknoloji",
     "XGIDA": "BIST Gıda",
@@ -26,8 +37,16 @@ INDICES = {
     "XELKT": "BIST Elektrik",
     "XTEKS": "BIST Tekstil",
     "XILTM": "BIST İletişim",
-    "XUMAL": "BIST Mali",
-    "XUTUM": "BIST Tüm",
+    # Thematic indices
+    "XSRDK": "BIST Sürdürülebilirlik",
+    "XKURY": "BIST Kurumsal Yönetim",
+    "XYLDZ": "BIST Yıldız",
+    "XBANA": "BIST Banka Dışı Likit 10",
+    "XSPOR": "BIST Spor",
+    "XGMYO": "BIST GYO",
+    "XTUMY": "BIST Tüm-100",
+    "XYORT": "BIST Yatırım Ortaklıkları",
+    "XSDNZ": "BIST Seçme Divident",
 }
 
 
@@ -60,7 +79,9 @@ class Index:
         """
         self._symbol = symbol.upper()
         self._paratic = get_paratic_provider()
+        self._bist_index = get_bist_index_provider()
         self._info_cache: dict[str, Any] | None = None
+        self._components_cache: list[dict[str, Any]] | None = None
 
     @property
     def symbol(self) -> str:
@@ -92,6 +113,43 @@ class Index:
             quote["type"] = "index"
             self._info_cache = quote
         return self._info_cache
+
+    @property
+    def components(self) -> list[dict[str, Any]]:
+        """
+        Get constituent stocks of this index.
+
+        Returns:
+            List of component dicts with 'symbol' and 'name' keys.
+            Empty list if index components are not available.
+
+        Examples:
+            >>> import borsapy as bp
+            >>> xu030 = bp.Index("XU030")
+            >>> xu030.components
+            [{'symbol': 'AKBNK', 'name': 'AKBANK'}, ...]
+            >>> len(xu030.components)
+            30
+        """
+        if self._components_cache is None:
+            self._components_cache = self._bist_index.get_components(self._symbol)
+        return self._components_cache
+
+    @property
+    def component_symbols(self) -> list[str]:
+        """
+        Get just the ticker symbols of constituent stocks.
+
+        Returns:
+            List of stock symbols.
+
+        Examples:
+            >>> import borsapy as bp
+            >>> xu030 = bp.Index("XU030")
+            >>> xu030.component_symbols
+            ['AKBNK', 'AKSA', 'AKSEN', ...]
+        """
+        return [c["symbol"] for c in self.components]
 
     def history(
         self,
@@ -150,19 +208,61 @@ class Index:
         return f"Index('{self._symbol}')"
 
 
-def indices() -> list[str]:
+def indices(detailed: bool = False) -> list[str] | list[dict[str, Any]]:
     """
     Get list of available market indices.
 
+    Args:
+        detailed: If True, return list of dicts with symbol, name, and count.
+                  If False (default), return just the symbol list.
+
     Returns:
-        List of index symbols.
+        List of index symbols, or list of dicts if detailed=True.
 
     Examples:
         >>> import borsapy as bp
         >>> bp.indices()
         ['XU100', 'XU050', 'XU030', 'XBANK', 'XUSIN', ...]
+        >>> bp.indices(detailed=True)
+        [{'symbol': 'XU100', 'name': 'BIST 100', 'count': 100}, ...]
     """
-    return list(INDICES.keys())
+    if not detailed:
+        return list(INDICES.keys())
+
+    # Get component counts from provider
+    provider = get_bist_index_provider()
+    available = provider.get_available_indices()
+
+    # Create lookup for counts
+    count_map = {item["symbol"]: item["count"] for item in available}
+
+    result = []
+    for symbol, name in INDICES.items():
+        result.append({
+            "symbol": symbol,
+            "name": name,
+            "count": count_map.get(symbol, 0),
+        })
+    return result
+
+
+def all_indices() -> list[dict[str, Any]]:
+    """
+    Get all indices from BIST with component counts.
+
+    This returns all 79 indices available in the BIST data,
+    not just the commonly used ones in indices().
+
+    Returns:
+        List of dicts with 'symbol', 'name', and 'count' keys.
+
+    Examples:
+        >>> import borsapy as bp
+        >>> bp.all_indices()
+        [{'symbol': 'X030C', 'name': 'BIST 30 Capped', 'count': 30}, ...]
+    """
+    provider = get_bist_index_provider()
+    return provider.get_available_indices()
 
 
 def index(symbol: str) -> Index:

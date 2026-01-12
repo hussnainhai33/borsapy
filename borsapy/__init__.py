@@ -75,7 +75,7 @@ from borsapy.exceptions import (
 )
 from borsapy.fund import Fund, compare_funds, screen_funds, search_funds
 from borsapy.fx import FX, banks, metal_institutions
-from borsapy.index import Index, index, indices
+from borsapy.index import Index, all_indices, index, indices
 from borsapy.inflation import Inflation
 from borsapy.market import companies, search_companies
 from borsapy.multi import Tickers, download
@@ -83,7 +83,7 @@ from borsapy.screener import Screener, screen_stocks, screener_criteria, sectors
 from borsapy.ticker import Ticker
 from borsapy.viop import VIOP
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __author__ = "Said Surucu"
 
 __all__ = [
@@ -111,6 +111,7 @@ __all__ = [
     "download",
     "index",
     "indices",
+    "all_indices",
     # Bond functions
     "bonds",
     "risk_free_rate",
