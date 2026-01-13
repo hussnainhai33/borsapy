@@ -5,6 +5,7 @@ from typing import Any
 
 import pandas as pd
 
+from borsapy._providers.canlidoviz import get_canlidoviz_provider
 from borsapy._providers.dovizcom import get_dovizcom_provider
 
 
@@ -33,7 +34,7 @@ def metal_institutions() -> list[str]:
     Examples:
         >>> import borsapy as bp
         >>> bp.metal_institutions()
-        ['gram-altin', 'gram-gumus', 'gram-paladyum', 'gram-platin', 'ons-altin']
+        ['gram-altin', 'gram-gumus', 'gram-platin', 'ons-altin']
     """
     return get_dovizcom_provider().get_metal_institutions()
 
@@ -43,10 +44,9 @@ class FX:
     A yfinance-like interface for forex and commodity data.
 
     Supported assets:
-    - Currencies: USD, EUR, GBP, JPY, CHF, CAD, AUD
-    - Precious Metals: gram-altin, gumus, ons, XAG-USD, XPT-USD, XPD-USD
-    - Energy: BRENT, WTI
-    - Fuel: diesel, gasoline, lpg
+    - Currencies: USD, EUR, GBP, JPY, CHF, CAD, AUD (+ 58 more via canlidoviz)
+    - Precious Metals: gram-altin, gumus, ons-altin, gram-platin, XAG-USD, XPT-USD, XPD-USD
+    - Energy: BRENT
 
     Examples:
         >>> import borsapy as bp
@@ -72,8 +72,26 @@ class FX:
             asset: Asset code (USD, EUR, gram-altin, BRENT, etc.)
         """
         self._asset = asset
-        self._provider = get_dovizcom_provider()
+        self._canlidoviz = get_canlidoviz_provider()
+        self._dovizcom = get_dovizcom_provider()
         self._current_cache: dict[str, Any] | None = None
+
+    def _use_canlidoviz(self) -> bool:
+        """Check if canlidoviz should be used for this asset."""
+        asset_upper = self._asset.upper()
+        # Currencies
+        if asset_upper in self._canlidoviz.CURRENCY_IDS:
+            return True
+        # Metals supported by canlidoviz (TRY prices)
+        if self._asset in self._canlidoviz.METAL_IDS:
+            return True
+        # Energy supported by canlidoviz (USD prices)
+        if asset_upper in self._canlidoviz.ENERGY_IDS:
+            return True
+        # Commodities supported by canlidoviz (USD prices)
+        if asset_upper in self._canlidoviz.COMMODITY_IDS:
+            return True
+        return False
 
     @property
     def asset(self) -> str:
@@ -100,8 +118,37 @@ class FX:
             - update_time: Last update timestamp
         """
         if self._current_cache is None:
-            self._current_cache = self._provider.get_current(self._asset)
+            if self._use_canlidoviz():
+                self._current_cache = self._canlidoviz.get_current(self._asset)
+            else:
+                try:
+                    self._current_cache = self._dovizcom.get_current(self._asset)
+                except Exception:
+                    # Fallback to bank_rates for currencies not supported by APIs
+                    self._current_cache = self._current_from_bank_rates()
         return self._current_cache
+
+    def _current_from_bank_rates(self) -> dict[str, Any]:
+        """Calculate current price from bank rates as fallback."""
+        from datetime import datetime
+
+        rates = self._dovizcom.get_bank_rates(self._asset)
+        if rates.empty:
+            raise ValueError(f"No data available for {self._asset}")
+
+        # Calculate average mid price from all banks
+        mids = (rates["buy"] + rates["sell"]) / 2
+        avg_mid = float(mids.mean())
+
+        return {
+            "symbol": self._asset,
+            "last": avg_mid,
+            "open": avg_mid,
+            "high": float(rates["sell"].max()),
+            "low": float(rates["buy"].min()),
+            "update_time": datetime.now(),
+            "source": "bank_rates_avg",
+        }
 
     @property
     def info(self) -> dict[str, Any]:
@@ -124,7 +171,7 @@ class FX:
             1      garanti     Garanti BBVA      USD  41.7000  44.2000    5.99
             ...
         """
-        return self._provider.get_bank_rates(self._asset)
+        return self._dovizcom.get_bank_rates(self._asset)
 
     def bank_rate(self, bank: str) -> dict[str, Any]:
         """
@@ -141,7 +188,7 @@ class FX:
             >>> usd.bank_rate("akbank")
             {'bank': 'akbank', 'currency': 'USD', 'buy': 41.6610, 'sell': 44.1610, 'spread': 5.99}
         """
-        return self._provider.get_bank_rates(self._asset, bank=bank)
+        return self._dovizcom.get_bank_rates(self._asset, bank=bank)
 
     @staticmethod
     def banks() -> list[str]:
@@ -165,7 +212,7 @@ class FX:
         Get precious metal rates from all institutions (kuyumcular, bankalar).
 
         Only available for precious metals: gram-altin, gram-gumus, ons-altin,
-        gram-platin, gram-paladyum
+        gram-platin
 
         Returns:
             DataFrame with columns: institution, institution_name, asset, buy, sell, spread
@@ -178,7 +225,7 @@ class FX:
             1           akbank            Akbank  gram-altin  6310.00  6330.00    0.32
             ...
         """
-        return self._provider.get_metal_institution_rates(self._asset)
+        return self._dovizcom.get_metal_institution_rates(self._asset)
 
     def institution_rate(self, institution: str) -> dict[str, Any]:
         """
@@ -196,7 +243,7 @@ class FX:
             {'institution': 'akbank', 'institution_name': 'Akbank', 'asset': 'gram-altin',
              'buy': 6310.00, 'sell': 6330.00, 'spread': 0.32}
         """
-        return self._provider.get_metal_institution_rates(self._asset, institution=institution)
+        return self._dovizcom.get_metal_institution_rates(self._asset, institution=institution)
 
     @staticmethod
     def metal_institutions() -> list[str]:
@@ -208,7 +255,7 @@ class FX:
 
         Examples:
             >>> FX.metal_institutions()
-            ['gram-altin', 'gram-gumus', 'gram-paladyum', 'gram-platin', 'ons-altin']
+            ['gram-altin', 'gram-gumus', 'gram-platin', 'ons-altin']
         """
         from borsapy._providers.dovizcom import get_dovizcom_provider
 
@@ -242,12 +289,20 @@ class FX:
         start_dt = self._parse_date(start) if start else None
         end_dt = self._parse_date(end) if end else None
 
-        return self._provider.get_history(
-            asset=self._asset,
-            period=period,
-            start=start_dt,
-            end=end_dt,
-        )
+        if self._use_canlidoviz():
+            return self._canlidoviz.get_history(
+                asset=self._asset,
+                period=period,
+                start=start_dt,
+                end=end_dt,
+            )
+        else:
+            return self._dovizcom.get_history(
+                asset=self._asset,
+                period=period,
+                start=start_dt,
+                end=end_dt,
+            )
 
     def institution_history(
         self,
@@ -288,7 +343,29 @@ class FX:
         start_dt = self._parse_date(start) if start else None
         end_dt = self._parse_date(end) if end else None
 
-        return self._provider.get_institution_history(
+        # Use canlidoviz for currencies and precious metals (bank-specific rates)
+        asset_upper = self._asset.upper()
+        use_canlidoviz = (
+            asset_upper in self._canlidoviz.CURRENCY_IDS
+            or self._asset in ("gram-altin", "gumus", "gram-platin")
+        )
+
+        if use_canlidoviz:
+            # Check if canlidoviz has bank ID for this asset
+            try:
+                return self._canlidoviz.get_history(
+                    asset=self._asset,
+                    period=period,
+                    start=start_dt,
+                    end=end_dt,
+                    institution=institution,
+                )
+            except Exception:
+                # Fall back to dovizcom if canlidoviz doesn't support this bank
+                pass
+
+        # Use dovizcom for other metals and unsupported banks
+        return self._dovizcom.get_institution_history(
             asset=self._asset,
             institution=institution,
             period=period,

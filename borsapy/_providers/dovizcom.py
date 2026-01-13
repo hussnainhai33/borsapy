@@ -1,4 +1,11 @@
-"""Doviz.com provider for forex and commodity data."""
+"""Doviz.com provider for forex and commodity data.
+
+Provides:
+- HTML scraping for bank_rates and institution_rates (no token required)
+
+Note: For currencies, metals, and energy use canlidoviz.py instead (token-free).
+This provider is mainly used for bank_rates and institution_rates scraping.
+"""
 
 import re
 import time
@@ -17,18 +24,15 @@ class DovizcomProvider(BaseProvider):
     """
     Provider for forex and commodity data from doviz.com.
 
-    Supported assets:
-    - Currencies: USD, EUR, GBP, JPY, CHF, CAD, AUD
-    - Precious Metals: gram-altin, gumus, ons, XAG-USD, XPT-USD, XPD-USD
-    - Energy: BRENT, WTI
-    - Fuel: diesel, gasoline, lpg
+    Note: For currencies, metals, energy and commodities use canlidoviz.py (token-free).
+    This provider is mainly used for bank_rates and institution_rates HTML scraping.
     """
 
     BASE_URL = "https://api.doviz.com/api/v12"
     KUR_BASE_URL = "https://kur.doviz.com"
     TOKEN_EXPIRY = 3600  # 1 hour
 
-    FALLBACK_TOKEN = "3e75d7fabf1c50c8b962626dd0e5ea22d8000815e1b0920d0a26afd77fcd6609"
+    FALLBACK_TOKEN = "7e2a5e914861aac18902c544e17f1156e08e5245c113470f74bcd5402f1a926d"
 
     # Bank slug mapping for kur.doviz.com
     BANK_SLUGS = {
@@ -101,7 +105,6 @@ class DovizcomProvider(BaseProvider):
         "gram-gumus": "gumus",
         "ons-altin": "ons",
         "gram-platin": "gram-platin",
-        "gram-paladyum": "gram-paladyum",
     }
 
     # Asset to API slug mapping (for history/current endpoints)
@@ -144,6 +147,10 @@ class DovizcomProvider(BaseProvider):
         "getirfinans": 37,
     }
 
+    # Note: SUPPORTED_ASSETS is kept for backward compatibility but
+    # all these assets should use canlidoviz provider (token-free).
+    # This list is mainly used for validation in get_current/get_history
+    # which require token authentication that may be unreliable.
     SUPPORTED_ASSETS = {
         # Currencies
         "USD",
@@ -155,26 +162,16 @@ class DovizcomProvider(BaseProvider):
         "AUD",
         # Precious Metals (TRY)
         "gram-altin",
-        "gumus",
         "gram-gumus",
         "gram-platin",
-        "gram-paladyum",
         # Precious Metals (USD)
-        "ons",
         "ons-altin",
         "XAG-USD",
         "XPT-USD",
         "XPD-USD",
         # Energy
         "BRENT",
-        "WTI",
-        # Fuel
-        "diesel",
-        "gasoline",
-        "lpg",
     }
-
-    FUEL_ASSETS = {"gasoline", "diesel", "lpg"}
 
     def __init__(self):
         super().__init__()
@@ -224,6 +221,8 @@ class DovizcomProvider(BaseProvider):
         """Get request headers with token."""
         if asset in ["gram-altin", "gumus", "ons"]:
             origin = "https://altin.doviz.com"
+        elif asset.upper() in self.CURRENCY_SLUGS:
+            origin = "https://kur.doviz.com"
         else:
             origin = "https://www.doviz.com"
 
@@ -235,14 +234,18 @@ class DovizcomProvider(BaseProvider):
             "Origin": origin,
             "Referer": f"{origin}/",
             "User-Agent": self.DEFAULT_HEADERS["User-Agent"],
+            "X-Requested-With": "XMLHttpRequest",
         }
 
     def get_current(self, asset: str) -> dict[str, Any]:
         """
-        Get current price for an asset.
+        Get current price for an asset via doviz.com API.
+
+        Note: For currencies, metals, energy and commodities use canlidoviz provider instead.
+        This method requires token authentication which may be unreliable.
 
         Args:
-            asset: Asset code (USD, EUR, gram-altin, BRENT, etc.)
+            asset: Asset code.
 
         Returns:
             Dictionary with current price data.
@@ -260,10 +263,7 @@ class DovizcomProvider(BaseProvider):
             return cached
 
         try:
-            if asset in self.FUEL_ASSETS:
-                data = self._get_from_archive(asset, days=7)
-            else:
-                data = self._get_from_daily(asset)
+            data = self._get_from_daily(asset)
 
             if not data:
                 raise DataNotAvailableError(f"No data for {asset}")
@@ -291,7 +291,10 @@ class DovizcomProvider(BaseProvider):
         end: datetime | None = None,
     ) -> pd.DataFrame:
         """
-        Get historical data for an asset.
+        Get historical data for an asset via doviz.com API.
+
+        Note: For currencies, metals, energy and commodities use canlidoviz provider instead.
+        This method requires token authentication which may be unreliable.
 
         Args:
             asset: Asset code.
@@ -617,7 +620,7 @@ class DovizcomProvider(BaseProvider):
         Get precious metal rates from institutions (kuyumcular, bankalar).
 
         Args:
-            asset: Asset code (gram-altin, gram-gumus, ons-altin, gram-platin, gram-paladyum)
+            asset: Asset code (gram-altin, gram-gumus, ons-altin, gram-platin)
             institution: Optional institution slug. If None, returns all institutions.
 
         Returns:
@@ -753,14 +756,13 @@ class DovizcomProvider(BaseProvider):
         end: datetime | None = None,
     ) -> pd.DataFrame:
         """
-        Get historical data for a specific institution's rates.
+        Get historical data for a specific institution's rates via doviz.com API.
 
-        Supports both precious metals and currencies.
+        Note: For currencies and gram-altin, use canlidoviz provider instead.
+        This method is for other metals (gram-gumus, ons-altin, gram-platin).
 
         Args:
-            asset: Asset code. Supported:
-                   - Metals: gram-altin, gram-gumus, ons-altin, gram-platin, gram-paladyum
-                   - Currencies: USD, EUR, GBP, CHF, CAD, AUD, JPY, etc.
+            asset: Asset code (gram-gumus, ons-altin, gram-platin).
             institution: Institution slug (akbank, kapalicarsi, harem, etc.).
             period: Period (1d, 5d, 1mo, 3mo, 6mo, 1y). Ignored if start is provided.
             start: Start date.
@@ -773,13 +775,6 @@ class DovizcomProvider(BaseProvider):
         Raises:
             DataNotAvailableError: If asset or institution is not supported.
             APIError: If API request fails.
-
-        Examples:
-            >>> provider = get_dovizcom_provider()
-            >>> # Metal history
-            >>> provider.get_institution_history("gram-altin", "akbank", period="1mo")
-            >>> # Currency history
-            >>> provider.get_institution_history("USD", "akbank", period="1mo")
         """
         # Validate institution
         if institution not in self.INSTITUTION_IDS:
@@ -788,22 +783,16 @@ class DovizcomProvider(BaseProvider):
                 f"Unsupported institution: {institution}. Supported: {supported}"
             )
 
-        # Determine asset type and build API slug
-        asset_upper = asset.upper()
-        if asset in self.METAL_SLUGS:
-            # Metal asset
-            api_asset_slug = self.METAL_SLUGS[asset]
-        elif asset_upper in self.CURRENCY_SLUGS:
-            # Currency asset
-            api_asset_slug = asset_upper
-        else:
+        # Only support metals (currencies should use canlidoviz)
+        if asset not in self.METAL_SLUGS:
             metal_supported = ", ".join(self.METAL_SLUGS.keys())
-            currency_supported = ", ".join(self.CURRENCY_SLUGS.keys())
             raise DataNotAvailableError(
                 f"Unsupported asset: {asset}. "
                 f"Supported metals: {metal_supported}. "
-                f"Supported currencies: {currency_supported}"
+                f"For currencies, use canlidoviz provider."
             )
+
+        api_asset_slug = self.METAL_SLUGS[asset]
 
         # Calculate date range
         end_dt = end or datetime.now()

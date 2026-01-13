@@ -256,7 +256,7 @@ print(len(xktum.components))         # 218 hisse
 
 ## FX (Döviz ve Emtia)
 
-Döviz kurları ve emtia fiyatları.
+Döviz kurları ve emtia fiyatları. **65 döviz** desteği.
 
 ### Döviz Kurları
 
@@ -267,11 +267,33 @@ usd = bp.FX("USD")
 print(usd.current)                  # Güncel kur
 print(usd.history(period="1ay"))    # Geçmiş veriler
 
-# Diğer dövizler
+# Majör dövizler
 eur = bp.FX("EUR")
 gbp = bp.FX("GBP")
 chf = bp.FX("CHF")
+jpy = bp.FX("JPY")
+cad = bp.FX("CAD")
+aud = bp.FX("AUD")
+
+# Diğer dövizler (65 döviz destekleniyor)
+rub = bp.FX("RUB")    # Rus Rublesi
+cny = bp.FX("CNY")    # Çin Yuanı
+sar = bp.FX("SAR")    # Suudi Riyali
+aed = bp.FX("AED")    # BAE Dirhemi
+inr = bp.FX("INR")    # Hindistan Rupisi
+# ... ve daha fazlası
 ```
+
+### Desteklenen Dövizler
+
+| Kategori | Dövizler |
+|----------|----------|
+| Majör | USD, EUR, GBP, CHF, JPY, CAD, AUD, NZD |
+| Avrupa | DKK, SEK, NOK, PLN, CZK, HUF, RON, BGN, HRK, RSD, BAM, MKD, ALL, MDL, UAH, BYR, ISK |
+| Ortadoğu & Afrika | AED, SAR, QAR, KWD, BHD, OMR, JOD, IQD, IRR, LBP, SYP, EGP, LYD, TND, DZD, MAD, ZAR, ILS |
+| Asya & Pasifik | CNY, INR, PKR, LKR, IDR, MYR, THB, PHP, KRW, KZT, AZN, GEL, SGD, HKD, TWD |
+| Amerika | MXN, BRL, ARS, CLP, COP, PEN, UYU, CRC |
+| Diğer | RUB, DVZSP1 (Sepet Kur) |
 
 ### Banka Kurları
 
@@ -298,18 +320,24 @@ print(bp.banks())                   # ['akbank', 'garanti', 'isbank', ...]
 ### Altın ve Emtialar
 
 ```python
-# Altın
+# Altın (TRY)
 gram_altin = bp.FX("gram-altin")
 ceyrek = bp.FX("ceyrek-altin")
 yarim = bp.FX("yarim-altin")
 tam = bp.FX("tam-altin")
-cumhuriyet = bp.FX("cumhuriyet-altini")
+cumhuriyet = bp.FX("cumhuriyet-altin")
+ata = bp.FX("ata-altin")
 
-# Diğer değerli metaller
+# Diğer değerli metaller (TRY)
 gumus = bp.FX("gram-gumus")
 ons_altin = bp.FX("ons-altin")
 platin = bp.FX("gram-platin")
-paladyum = bp.FX("gram-paladyum")
+
+# Emtia (USD)
+brent = bp.FX("BRENT")           # Brent Petrol
+silver = bp.FX("XAG-USD")        # Gümüş Ons
+platinum = bp.FX("XPT-USD")      # Platin Spot
+palladium = bp.FX("XPD-USD")     # Paladyum Spot
 
 print(gram_altin.current)
 print(gram_altin.history(period="1ay"))
@@ -333,7 +361,7 @@ print(gold.institution_rate("akbank"))
 
 # Desteklenen emtialar
 print(bp.metal_institutions())
-# ['gram-altin', 'gram-gumus', 'ons-altin', 'gram-platin', 'gram-paladyum']
+# ['gram-altin', 'gram-gumus', 'ons-altin', 'gram-platin']
 ```
 
 ### Kurum Bazlı Geçmiş (Metal + Döviz)
@@ -843,7 +871,7 @@ print(sonuc)
 |-------|--------|----------|
 | Ticker | İş Yatırım, Paratic, KAP, hedeffiyat.com.tr, isinturkiye.com.tr | Hisse verileri, finansallar, bildirimler, analist hedefleri, ISIN |
 | Index | Paratic | BIST endeksleri |
-| FX | doviz.com | Döviz kurları, altın, emtia, banka kurları |
+| FX | canlidoviz.com, doviz.com | 65 döviz, altın, emtia (canlidoviz); banka/kurum kurları (doviz.com) |
 | Crypto | BtcTurk | Kripto para verileri |
 | Fund | TEFAS | Yatırım fonu verileri, varlık dağılımı, tarama/karşılaştırma |
 | Inflation | TCMB | Enflasyon verileri |
