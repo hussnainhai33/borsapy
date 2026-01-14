@@ -61,22 +61,9 @@ Examples:
 """
 
 from borsapy.bond import Bond, bonds, risk_free_rate
-from borsapy.technical import (
-    TechnicalAnalyzer,
-    add_indicators,
-    calculate_adx,
-    calculate_atr,
-    calculate_bollinger_bands,
-    calculate_ema,
-    calculate_macd,
-    calculate_obv,
-    calculate_rsi,
-    calculate_sma,
-    calculate_stochastic,
-    calculate_vwap,
-)
 from borsapy.calendar import EconomicCalendar, economic_calendar
 from borsapy.crypto import Crypto, crypto_pairs
+from borsapy.eurobond import Eurobond, eurobonds
 from borsapy.exceptions import (
     APIError,
     AuthenticationError,
@@ -93,11 +80,27 @@ from borsapy.index import Index, all_indices, index, indices
 from borsapy.inflation import Inflation
 from borsapy.market import companies, search_companies
 from borsapy.multi import Tickers, download
+from borsapy.portfolio import Portfolio
 from borsapy.screener import Screener, screen_stocks, screener_criteria, sectors, stock_indices
+from borsapy.tcmb import TCMB, policy_rate
+from borsapy.technical import (
+    TechnicalAnalyzer,
+    add_indicators,
+    calculate_adx,
+    calculate_atr,
+    calculate_bollinger_bands,
+    calculate_ema,
+    calculate_macd,
+    calculate_obv,
+    calculate_rsi,
+    calculate_sma,
+    calculate_stochastic,
+    calculate_vwap,
+)
 from borsapy.ticker import Ticker
 from borsapy.viop import VIOP
 
-__version__ = "0.4.1"
+__version__ = "0.4.6"
 __author__ = "Said Surucu"
 
 __all__ = [
@@ -107,10 +110,13 @@ __all__ = [
     "FX",
     "Crypto",
     "Fund",
+    "Portfolio",
     "Index",
     "Inflation",
     "VIOP",
     "Bond",
+    "Eurobond",
+    "TCMB",
     "EconomicCalendar",
     "Screener",
     # Market functions
@@ -129,6 +135,10 @@ __all__ = [
     # Bond functions
     "bonds",
     "risk_free_rate",
+    # Eurobond functions
+    "eurobonds",
+    # TCMB functions
+    "policy_rate",
     # Calendar functions
     "economic_calendar",
     # Screener functions

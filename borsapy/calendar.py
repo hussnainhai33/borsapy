@@ -1,7 +1,6 @@
 """EconomicCalendar class for economic events - yfinance-like API."""
 
 from datetime import datetime, timedelta
-from typing import Any
 
 import pandas as pd
 

@@ -8,3 +8,7 @@ dist/
 .ruff_cache/
 CLAUDE.md
 uv.lock
+
+# IDE/Editor
+.DS_Store
+.serena/

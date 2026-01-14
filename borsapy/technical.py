@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from typing import Literal
+    pass
 
 __all__ = [
     "TechnicalAnalyzer",

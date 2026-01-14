@@ -500,6 +500,151 @@ fon.history(period="max")  # Tüm veri (5 yıla kadar)
 
 ---
 
+## Portfolio (Portföy Yönetimi)
+
+Çoklu varlık portföylerini yönetme, performans takibi ve risk metrikleri.
+
+### Temel Kullanım
+
+```python
+import borsapy as bp
+
+# Portföy oluşturma
+portfolio = bp.Portfolio()
+
+# Varlık ekleme (4 tip destekleniyor)
+portfolio.add("THYAO", shares=100, cost=280.0)          # Hisse - adet + maliyet
+portfolio.add("GARAN", shares=200)                       # Hisse - güncel fiyattan
+portfolio.add("gram-altin", shares=10, asset_type="fx")  # Emtia/Döviz (FX)
+portfolio.add("USD", shares=1000, asset_type="fx")       # Döviz
+portfolio.add("BTCTRY", shares=0.5)                      # Kripto (auto-detect)
+portfolio.add("YAY", shares=1000, asset_type="fund")     # Yatırım Fonu
+
+# Benchmark ayarlama (Index karşılaştırması için)
+portfolio.set_benchmark("XU100")                         # XU030, XK030 da olabilir
+
+# Portföy durumu
+print(portfolio.holdings)     # DataFrame: symbol, shares, cost, current_price, value, weight, pnl, pnl_pct
+print(portfolio.value)        # Toplam değer (TL)
+print(portfolio.cost)         # Toplam maliyet
+print(portfolio.pnl)          # Kar/zarar (TL)
+print(portfolio.pnl_pct)      # Kar/zarar (%)
+print(portfolio.weights)      # {'THYAO': 0.45, 'GARAN': 0.35, ...}
+```
+
+### Desteklenen Varlık Tipleri
+
+| Tip | Sınıf | Otomatik Algılama | Örnekler |
+|-----|-------|-------------------|----------|
+| **stock** | `Ticker` | Varsayılan | THYAO, GARAN, ASELS |
+| **fx** | `FX` | ✅ 65 döviz + metaller + emtia | USD, EUR, gram-altin, BRENT |
+| **crypto** | `Crypto` | ✅ *TRY pattern (6+ karakter) | BTCTRY, ETHTRY |
+| **fund** | `Fund` | ❌ `asset_type="fund"` gerekli | AAK, TTE, YAY |
+
+**Not**: Index'ler (XU100, XU030) satın alınamaz, **benchmark** olarak kullanılır.
+
+### Performans ve Geçmiş
+
+```python
+# Geçmiş performans (mevcut pozisyonlarla)
+hist = portfolio.history(period="1y")
+print(hist)
+#                   Value  Daily_Return
+# Date
+# 2024-01-02  150000.00           NaN
+# 2024-01-03  152300.00      0.0153
+# ...
+
+# Performans özeti
+print(portfolio.performance)
+# {'total_return': 25.5, 'total_value': 187500.0, 'total_cost': 150000.0, 'total_pnl': 37500.0}
+```
+
+### Risk Metrikleri
+
+```python
+# Tüm risk metrikleri
+metrics = portfolio.risk_metrics(period="1y")
+print(metrics)
+# {'annualized_return': 18.2,
+#  'annualized_volatility': 22.5,
+#  'sharpe_ratio': 0.65,
+#  'sortino_ratio': 0.82,
+#  'max_drawdown': -15.3,
+#  'beta': 1.12,
+#  'alpha': 2.5,
+#  'risk_free_rate': 28.0,
+#  'trading_days': 252}
+
+# Kısa yollar
+print(portfolio.sharpe_ratio())           # Sharpe oranı
+print(portfolio.sortino_ratio())          # Sortino oranı
+print(portfolio.beta())                   # Benchmark'a göre beta (varsayılan: XU100)
+print(portfolio.beta(benchmark="XU030"))  # Farklı benchmark
+
+# Korelasyon matrisi
+corr = portfolio.correlation_matrix(period="1y")
+print(corr)
+#          THYAO    GARAN  gram-altin
+# THYAO     1.00     0.75       0.15
+# GARAN     0.75     1.00       0.12
+# gram-altin 0.15    0.12       1.00
+```
+
+### Varlık Yönetimi
+
+```python
+# Varlık güncelleme
+portfolio.update("THYAO", shares=150, cost=290.0)
+
+# Varlık kaldırma
+portfolio.remove("GARAN")
+
+# Portföyü temizle
+portfolio.clear()
+
+# Method chaining
+portfolio.add("THYAO", shares=100, cost=280).add("GARAN", shares=200, cost=50).set_benchmark("XU030")
+```
+
+### Import/Export
+
+```python
+# Dict olarak export
+data = portfolio.to_dict()
+print(data)
+# {'benchmark': 'XU100', 'holdings': [
+#     {'symbol': 'THYAO', 'shares': 100, 'cost_per_share': 280.0, 'asset_type': 'stock'},
+#     ...
+# ]}
+
+# Dict'ten import
+portfolio2 = bp.Portfolio.from_dict(data)
+
+# JSON'a kaydetme
+import json
+with open("portfolio.json", "w") as f:
+    json.dump(portfolio.to_dict(), f)
+
+# JSON'dan yükleme
+with open("portfolio.json") as f:
+    portfolio3 = bp.Portfolio.from_dict(json.load(f))
+```
+
+### Teknik Analiz (TechnicalMixin)
+
+Portfolio sınıfı TechnicalMixin'den miras aldığı için teknik göstergeleri de kullanabilir:
+
+```python
+# Portfolio history üzerinde teknik analiz
+portfolio.rsi()                    # RSI
+portfolio.sma()                    # SMA
+portfolio.macd()                   # MACD
+portfolio.bollinger_bands()        # Bollinger Bands
+```
+
+---
+
 ## Teknik Analiz
 
 Tüm varlık sınıfları için teknik analiz göstergeleri (Ticker, Index, Crypto, FX, Fund).
@@ -732,6 +877,92 @@ print(bond.info)                    # Tüm bilgiler
 rfr = bp.risk_free_rate()           # 10Y faiz oranı (ondalık)
 print(rfr)                          # 0.2803
 ```
+
+---
+
+## TCMB (Merkez Bankası Faiz Oranları)
+
+TCMB politika faizi ve koridor oranları.
+
+```python
+import borsapy as bp
+
+tcmb = bp.TCMB()
+
+# Güncel oranlar
+print(tcmb.policy_rate)             # 1 hafta repo faizi (%)
+print(tcmb.overnight)               # {'borrowing': 36.5, 'lending': 41.0}
+print(tcmb.late_liquidity)          # {'borrowing': 0.0, 'lending': 44.0}
+
+# Tüm oranlar (DataFrame)
+print(tcmb.rates)
+#              type  borrowing  lending
+# 0          policy        NaN     38.0
+# 1       overnight       36.5     41.0
+# 2  late_liquidity        0.0     44.0
+
+# Geçmiş veriler
+print(tcmb.history("policy"))           # 1 hafta repo geçmişi (2010+)
+print(tcmb.history("overnight"))        # Gecelik faiz geçmişi
+print(tcmb.history("late_liquidity", period="1y"))  # Son 1 yıl LON
+
+# Kısa yol fonksiyonu
+print(bp.policy_rate())             # Güncel politika faizi
+```
+
+### Desteklenen Oranlar
+
+| Oran | Açıklama |
+|------|----------|
+| `policy_rate` | 1 hafta repo faizi (politika faizi) |
+| `overnight` | Gecelik (O/N) koridor oranları (borrowing/lending) |
+| `late_liquidity` | Geç likidite penceresi (LON) oranları |
+
+---
+
+## Eurobond (Türk Devlet Tahvilleri)
+
+Yabancı para cinsinden (USD/EUR) Türk devlet tahvilleri.
+
+```python
+import borsapy as bp
+
+# Tüm eurobondlar (38+ tahvil)
+df = bp.eurobonds()
+print(df)
+#            isin   maturity  days_to_maturity currency  bid_price  bid_yield  ask_price  ask_yield
+# 0  US900123DG28 2033-01-19              2562      USD     120.26       6.55     122.19       6.24
+# ...
+
+# Para birimine göre filtre
+df_usd = bp.eurobonds(currency="USD")   # Sadece USD (34 tahvil)
+df_eur = bp.eurobonds(currency="EUR")   # Sadece EUR (4 tahvil)
+
+# Tek eurobond (ISIN ile)
+bond = bp.Eurobond("US900123DG28")
+print(bond.isin)                    # US900123DG28
+print(bond.maturity)                # 2033-01-19
+print(bond.currency)                # USD
+print(bond.days_to_maturity)        # 2562
+print(bond.bid_price)               # 120.26
+print(bond.bid_yield)               # 6.55
+print(bond.ask_price)               # 122.19
+print(bond.ask_yield)               # 6.24
+print(bond.info)                    # Tüm veriler (dict)
+```
+
+### Eurobond Verileri
+
+| Alan | Açıklama |
+|------|----------|
+| `isin` | Uluslararası tahvil kimlik numarası |
+| `maturity` | Vade tarihi |
+| `days_to_maturity` | Vadeye kalan gün |
+| `currency` | Para birimi (USD veya EUR) |
+| `bid_price` | Alış fiyatı |
+| `bid_yield` | Alış getirisi (%) |
+| `ask_price` | Satış fiyatı |
+| `ask_yield` | Satış getirisi (%) |
 
 ---
 
@@ -1029,6 +1260,8 @@ print(sonuc)
 | Inflation | TCMB | Enflasyon verileri |
 | VIOP | İş Yatırım | Vadeli işlem ve opsiyon |
 | Bond | doviz.com | Devlet tahvili faiz oranları (2Y, 5Y, 10Y) |
+| TCMB | tcmb.gov.tr | Merkez Bankası faiz oranları (politika, gecelik, LON) |
+| Eurobond | ziraatbank.com.tr | Türk devlet eurobondları (USD/EUR, 38+ tahvil) |
 | EconomicCalendar | doviz.com | Ekonomik takvim (TR, US, EU, DE, GB, JP, CN) |
 | Screener | İş Yatırım | Hisse tarama (İş Yatırım gelişmiş hisse arama) |
 
@@ -1044,12 +1277,15 @@ print(sonuc)
 - Analist hedefleri ve tavsiyeler
 
 ### borsapy'ye Özgü
+- **Portfolio**: Çoklu varlık portföy yönetimi + risk metrikleri (Sharpe, Sortino, Beta, Alpha)
 - **FX**: Döviz ve emtia verileri + banka kurları (doviz.com)
 - **Crypto**: Kripto para (BtcTurk)
 - **Fund**: Yatırım fonları + varlık dağılımı + tarama/karşılaştırma (TEFAS)
 - **Inflation**: Enflasyon verileri ve hesaplayıcı (TCMB)
 - **VIOP**: Vadeli işlem ve opsiyon (İş Yatırım)
 - **Bond**: Devlet tahvili faiz oranları + risk_free_rate (doviz.com)
+- **TCMB**: Merkez Bankası faiz oranları - politika, gecelik, LON + geçmiş (tcmb.gov.tr)
+- **Eurobond**: Türk devlet eurobondları - 38+ tahvil, USD/EUR (ziraatbank.com.tr)
 - **EconomicCalendar**: Ekonomik takvim - 7 ülke desteği (doviz.com)
 - **Screener**: Hisse tarama - 50+ kriter, sektör/endeks filtreleme (İş Yatırım)
 - **Teknik Analiz**: 10 gösterge (SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, OBV, VWAP, ADX)
@@ -1069,10 +1305,11 @@ Bu kütüphane aracılığıyla erişilen veriler, ilgili veri kaynaklarına ait
 - **İş Yatırım** (isyatirim.com.tr): Finansal tablolar, hisse tarama, VIOP
 - **Paratic** (paratic.com): Hisse OHLCV, endeksler
 - **KAP** (kap.org.tr): Şirket bildirimleri, ortaklık yapısı
-- **TCMB**: Enflasyon verileri
+- **TCMB** (tcmb.gov.tr): Enflasyon verileri, merkez bankası faiz oranları
 - **BtcTurk**: Kripto para verileri
 - **TEFAS** (tefas.gov.tr): Yatırım fonu verileri
 - **doviz.com**: Döviz kurları, banka kurları, ekonomik takvim, tahvil faizleri
+- **Ziraat Bankası** (ziraatbank.com.tr): Eurobond verileri
 - **hedeffiyat.com.tr**: Analist hedef fiyatları
 - **isinturkiye.com.tr**: ISIN kodları
 

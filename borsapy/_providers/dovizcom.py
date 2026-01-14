@@ -847,7 +847,7 @@ class DovizcomProvider(BaseProvider):
         except Exception as e:
             raise APIError(f"Failed to fetch institution history for {asset} from {institution}: {e}") from e
 
-    def get_metal_institutions(self) -> list[str]:
+    def get_history_institutions(self) -> list[str]:
         """
         Get list of institutions that support metal history data.
 
