@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 
 from borsapy._providers.tefas import get_tefas_provider
+from borsapy.technical import TechnicalMixin
 
 
-class Fund:
+class Fund(TechnicalMixin):
     """
     A yfinance-like interface for mutual fund data from TEFAS.
 

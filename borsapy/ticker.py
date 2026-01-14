@@ -9,6 +9,7 @@ import pandas as pd
 
 from borsapy._providers.kap import get_kap_provider
 from borsapy._providers.paratic import get_paratic_provider
+from borsapy.technical import TechnicalMixin
 
 
 class FastInfo:
@@ -463,7 +464,7 @@ class EnrichedInfo:
         return result
 
 
-class Ticker:
+class Ticker(TechnicalMixin):
     """
     A yfinance-like interface for Turkish stock data.
 

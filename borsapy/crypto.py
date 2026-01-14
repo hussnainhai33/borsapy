@@ -6,9 +6,10 @@ from typing import Any
 import pandas as pd
 
 from borsapy._providers.btcturk import get_btcturk_provider
+from borsapy.technical import TechnicalMixin
 
 
-class Crypto:
+class Crypto(TechnicalMixin):
     """
     A yfinance-like interface for cryptocurrency data from BtcTurk.
 

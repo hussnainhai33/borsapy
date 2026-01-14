@@ -61,6 +61,20 @@ Examples:
 """
 
 from borsapy.bond import Bond, bonds, risk_free_rate
+from borsapy.technical import (
+    TechnicalAnalyzer,
+    add_indicators,
+    calculate_adx,
+    calculate_atr,
+    calculate_bollinger_bands,
+    calculate_ema,
+    calculate_macd,
+    calculate_obv,
+    calculate_rsi,
+    calculate_sma,
+    calculate_stochastic,
+    calculate_vwap,
+)
 from borsapy.calendar import EconomicCalendar, economic_calendar
 from borsapy.crypto import Crypto, crypto_pairs
 from borsapy.exceptions import (
@@ -83,7 +97,7 @@ from borsapy.screener import Screener, screen_stocks, screener_criteria, sectors
 from borsapy.ticker import Ticker
 from borsapy.viop import VIOP
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "Said Surucu"
 
 __all__ = [
@@ -122,6 +136,19 @@ __all__ = [
     "screener_criteria",
     "sectors",
     "stock_indices",
+    # Technical analysis
+    "TechnicalAnalyzer",
+    "add_indicators",
+    "calculate_sma",
+    "calculate_ema",
+    "calculate_rsi",
+    "calculate_macd",
+    "calculate_bollinger_bands",
+    "calculate_atr",
+    "calculate_stochastic",
+    "calculate_obv",
+    "calculate_vwap",
+    "calculate_adx",
     # Exceptions
     "BorsapyError",
     "TickerNotFoundError",

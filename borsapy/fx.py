@@ -7,6 +7,7 @@ import pandas as pd
 
 from borsapy._providers.canlidoviz import get_canlidoviz_provider
 from borsapy._providers.dovizcom import get_dovizcom_provider
+from borsapy.technical import TechnicalMixin
 
 
 def banks() -> list[str]:
@@ -39,7 +40,7 @@ def metal_institutions() -> list[str]:
     return get_dovizcom_provider().get_metal_institutions()
 
 
-class FX:
+class FX(TechnicalMixin):
     """
     A yfinance-like interface for forex and commodity data.
 

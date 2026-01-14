@@ -500,6 +500,158 @@ fon.history(period="max")  # Tüm veri (5 yıla kadar)
 
 ---
 
+## Teknik Analiz
+
+Tüm varlık sınıfları için teknik analiz göstergeleri (Ticker, Index, Crypto, FX, Fund).
+
+### Tekil Değerler
+
+```python
+import borsapy as bp
+
+hisse = bp.Ticker("THYAO")
+
+# RSI (Relative Strength Index)
+print(hisse.rsi())                    # 65.2 (son değer)
+print(hisse.rsi(rsi_period=7))        # 7 periyotluk RSI
+
+# Hareketli Ortalamalar
+print(hisse.sma())                    # 20 günlük SMA
+print(hisse.sma(sma_period=50))       # 50 günlük SMA
+print(hisse.ema(ema_period=12))       # 12 günlük EMA
+
+# MACD
+print(hisse.macd())
+# {'macd': 2.5, 'signal': 1.8, 'histogram': 0.7}
+
+# Bollinger Bands
+print(hisse.bollinger_bands())
+# {'upper': 310.2, 'middle': 290.5, 'lower': 270.8}
+
+# Stochastic
+print(hisse.stochastic())
+# {'k': 75.2, 'd': 68.5}
+
+# ATR (Average True Range)
+print(hisse.atr())                    # 4.25
+
+# OBV (On-Balance Volume)
+print(hisse.obv())                    # 1250000
+
+# VWAP (Volume Weighted Average Price)
+print(hisse.vwap())                   # 285.5
+
+# ADX (Average Directional Index)
+print(hisse.adx())                    # 32.5
+```
+
+### TechnicalAnalyzer ile Tam Seriler
+
+```python
+import borsapy as bp
+
+hisse = bp.Ticker("THYAO")
+
+# TechnicalAnalyzer oluştur
+ta = hisse.technicals(period="1y")
+
+# Tüm göstergelerin son değerleri
+print(ta.latest)
+# {'sma_20': 285.5, 'ema_12': 287.2, 'rsi_14': 65.2, 'macd': 2.5, ...}
+
+# Tek tek seriler (pd.Series)
+print(ta.rsi())                       # 252 değerlik RSI serisi
+print(ta.sma(20))                     # 20 günlük SMA serisi
+print(ta.ema(12))                     # 12 günlük EMA serisi
+
+# DataFrame döndürenler
+print(ta.macd())                      # MACD, Signal, Histogram sütunları
+print(ta.bollinger_bands())           # BB_Upper, BB_Middle, BB_Lower
+print(ta.stochastic())                # Stoch_K, Stoch_D
+```
+
+### DataFrame ile Tüm Göstergeler
+
+```python
+import borsapy as bp
+
+hisse = bp.Ticker("THYAO")
+
+# OHLCV + tüm göstergeler tek DataFrame'de
+df = hisse.history_with_indicators(period="3ay")
+print(df.columns)
+# ['Open', 'High', 'Low', 'Close', 'Volume', 'SMA_20', 'EMA_12',
+#  'RSI_14', 'MACD', 'Signal', 'Histogram', 'BB_Upper', 'BB_Middle',
+#  'BB_Lower', 'ATR_14', 'Stoch_K', 'Stoch_D', 'OBV', 'VWAP', 'ADX_14']
+
+# Sadece belirli göstergeler
+df = hisse.history_with_indicators(period="1ay", indicators=["sma", "rsi", "macd"])
+```
+
+### Tüm Varlık Sınıflarında Çalışır
+
+```python
+import borsapy as bp
+
+# Hisse
+bp.Ticker("THYAO").rsi()
+
+# Endeks
+bp.Index("XU100").macd()
+
+# Kripto
+bp.Crypto("BTCTRY").bollinger_bands()
+
+# Döviz (Volume gerektiren göstergeler NaN döner)
+bp.FX("USD").rsi()
+
+# Yatırım Fonu
+bp.Fund("AAK").stochastic()
+
+# Altın
+bp.FX("gram-altin").sma()
+```
+
+### Standalone Fonksiyonlar
+
+```python
+import borsapy as bp
+from borsapy.technical import (
+    calculate_sma, calculate_ema, calculate_rsi, calculate_macd,
+    calculate_bollinger_bands, calculate_atr, calculate_stochastic,
+    calculate_obv, calculate_vwap, calculate_adx, add_indicators
+)
+
+# Herhangi bir DataFrame üzerinde kullanım
+df = bp.download("THYAO", period="1y")
+
+# Tekil göstergeler
+rsi = calculate_rsi(df, period=14)
+macd_df = calculate_macd(df, fast=12, slow=26, signal=9)
+bb_df = calculate_bollinger_bands(df, period=20, std_dev=2.0)
+
+# Tüm göstergeleri ekle
+df_with_indicators = add_indicators(df)
+df_with_indicators = add_indicators(df, indicators=["sma", "rsi"])  # Sadece belirli göstergeler
+```
+
+### Desteklenen Göstergeler
+
+| Gösterge | Metod | Açıklama |
+|----------|-------|----------|
+| SMA | `sma()` | Basit Hareketli Ortalama |
+| EMA | `ema()` | Üstel Hareketli Ortalama |
+| RSI | `rsi()` | Göreceli Güç Endeksi (0-100) |
+| MACD | `macd()` | Hareketli Ortalama Yakınsama/Iraksama |
+| Bollinger Bands | `bollinger_bands()` | Üst/Orta/Alt bantlar |
+| ATR | `atr()` | Ortalama Gerçek Aralık |
+| Stochastic | `stochastic()` | Stokastik Osilatör (%K, %D) |
+| OBV | `obv()` | Denge Hacmi (Volume gerektirir) |
+| VWAP | `vwap()` | Hacim Ağırlıklı Ortalama Fiyat (Volume gerektirir) |
+| ADX | `adx()` | Ortalama Yön Endeksi (0-100) |
+
+---
+
 ## Inflation (Enflasyon)
 
 TCMB enflasyon verileri.
@@ -900,6 +1052,7 @@ print(sonuc)
 - **Bond**: Devlet tahvili faiz oranları + risk_free_rate (doviz.com)
 - **EconomicCalendar**: Ekonomik takvim - 7 ülke desteği (doviz.com)
 - **Screener**: Hisse tarama - 50+ kriter, sektör/endeks filtreleme (İş Yatırım)
+- **Teknik Analiz**: 10 gösterge (SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, OBV, VWAP, ADX)
 - **KAP Entegrasyonu**: Resmi bildirimler ve takvim
 
 ---

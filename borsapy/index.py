@@ -7,6 +7,7 @@ import pandas as pd
 
 from borsapy._providers.bist_index import get_bist_index_provider
 from borsapy._providers.paratic import get_paratic_provider
+from borsapy.technical import TechnicalMixin
 
 # Known market indices with their names
 INDICES = {
@@ -50,7 +51,7 @@ INDICES = {
 }
 
 
-class Index:
+class Index(TechnicalMixin):
     """
     A yfinance-like interface for Turkish market indices.
 
